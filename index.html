@@ -1,0 +1,113 @@
+  <!-- Paddle JS v2 -->
+  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+  <script>
+    // Usa aqui o token CERTO:
+    //   - se estiveres a testar com preços sandbox, usa o CLIENT TOKEN SANDBOX
+    //   - se estiveres em produção, usa o CLIENT TOKEN LIVE
+    const PADDLE_CLIENT_TOKEN = "test_eae115a2a91c654f9abddd38106";
+
+    function getParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    function setStatus(texto) {
+      const el = document.getElementById("status-text");
+      if (el) el.textContent = texto;
+    }
+
+    function showError(texto) {
+      const el = document.getElementById("error");
+      if (el) {
+        el.style.display = "block";
+        el.textContent = texto;
+      }
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      try {
+        if (!window.Paddle) {
+          console.error("[QuickBox checkout] Paddle não carregou (window.Paddle undefined)");
+          setStatus("Não foi possível carregar o checkout da Paddle.");
+          showError("Parece que o script da Paddle não carregou. Verifica a ligação ou tenta novamente.");
+          return;
+        }
+
+        // 👉 NÃO mexemos mais em sandbox/live aqui.
+        // O próprio token (sandbox ou live) já define o ambiente certo.
+        Paddle.Initialize({
+          token: PADDLE_CLIENT_TOKEN,
+          checkout: {
+            settings: {
+              displayMode: "overlay",
+              variant: "one-page",
+              locale: "pt",
+              theme: "dark"
+            }
+          }
+        });
+
+        const plan = getParam("plan") || "monthly";
+        const priceId = getParam("priceId");
+        const profileId = getParam("profile_id");
+        const email = getParam("email");
+
+        const planText = document.getElementById("plan-text");
+        if (planText) {
+          const planLabel =
+            plan === "yearly"
+              ? "Plano anual"
+              : plan === "lifetime"
+              ? "Plano lifetime"
+              : "Plano mensal";
+          planText.textContent = planLabel;
+        }
+
+        if (!priceId) {
+          console.error("[QuickBox checkout] priceId em falta nos parâmetros.");
+          setStatus("Não foi possível preparar o checkout.");
+          showError("PriceId em falta. Volta à extensão QuickBox e tenta novamente.");
+          return;
+        }
+
+        const options = {
+          settings: {
+            displayMode: "overlay",
+            variant: "one-page",
+            locale: "pt",
+            theme: "dark"
+          },
+          items: [{ priceId, quantity: 1 }],
+          customData: {
+            profile_id: profileId || null,
+            plan
+          }
+        };
+
+        if (email) {
+          options.customer = { email };
+        }
+
+        setStatus("A abrir checkout seguro do QuickBox via Paddle…");
+
+        console.log("[QuickBox checkout] Abrir checkout Paddle:", {
+          plan,
+          priceId,
+          profileId,
+          email
+        });
+
+        try {
+          Paddle.Checkout.open(options);
+        } catch (err) {
+          console.error("[QuickBox checkout] Erro ao abrir checkout:", err);
+          setStatus("Não foi possível abrir o checkout.");
+          showError("Erro da Paddle ao abrir o checkout. Verifica token, ambiente e priceId.");
+        }
+      } catch (e) {
+        console.error("[QuickBox checkout] Erro inesperado:", e);
+        setStatus("Não foi possível preparar o checkout.");
+        showError("Erro inesperado ao preparar o checkout. Vê a consola para detalhes.");
+      }
+    });
+  </script>
