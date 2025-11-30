@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8" />
+  <title>Checkout QuickBox Premium</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #1e293b 0, #020617 55%);
+      color: #e5e7eb;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .wrap {
+      max-width: 420px;
+      width: 100%;
+      padding: 24px 18px;
+      border-radius: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.4);
+      background: rgba(15, 23, 42, 0.96);
+      box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+      text-align: center;
+    }
+    h1 {
+      font-size: 20px;
+      margin: 0 0 8px;
+    }
+    p {
+      margin: 4px 0;
+      font-size: 13px;
+      color: #9ca3af;
+    }
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(148, 163, 184, 0.6);
+      font-size: 11px;
+      color: #e5e7eb;
+      margin-bottom: 10px;
+    }
+  </style>
+
+  <!-- Paddle JS v2 -->
+  <script src="https://cdn.paddle.com/paddle/v2/paddle.js"></script>
+  <script>
+    // TODO: troca pelo teu client token (o mesmo que irias usar na extensão)
+    const PADDLE_CLIENT_TOKEN = "SEU_CLIENT_TOKEN_AQUI";
+    const IS_SANDBOX = true; // true enquanto testas, depois false em produção
+
+    function getParam(name) {
+      const url = new URL(window.location.href);
+      return url.searchParams.get(name);
+    }
+
+    window.addEventListener("DOMContentLoaded", () => {
+      if (IS_SANDBOX) {
+        Paddle.Environment.set("sandbox");
+      }
+
+      Paddle.Initialize({
+        token: PADDLE_CLIENT_TOKEN
+      });
+
+      const plan = getParam("plan") || "monthly";
+      const priceId = getParam("priceId");
+      const profileId = getParam("profile_id");
+      const email = getParam("email");
+
+      const planLabel =
+        plan === "yearly"
+          ? "Plano anual"
+          : plan === "lifetime"
+          ? "Plano lifetime"
+          : "Plano mensal";
+
+      const statusText = document.getElementById("status-text");
+      const planText = document.getElementById("plan-text");
+
+      if (planText) {
+        planText.textContent = planLabel;
+      }
+
+      if (!priceId) {
+        if (statusText) {
+          statusText.textContent =
+            "Ocorreu um problema ao preparar o checkout (priceId em falta). Volta à extensão e tenta novamente.";
+        }
+        console.error("[QuickBox checkout] priceId em falta nos parâmetros.");
+        return;
+      }
+
+      const options = {
+        items: [{ priceId, quantity: 1 }],
+        customData: {
+          profile_id: profileId || null,
+          plan
+        }
+      };
+
+      if (email) {
+        options.customer = { email };
+      }
+
+      if (statusText) {
+        statusText.textContent = "A abrir checkout seguro do QuickBox via Paddle…";
+      }
+
+      console.log("[QuickBox checkout] Abrir checkout Paddle:", {
+        plan,
+        priceId,
+        profileId,
+        email
+      });
+
+      Paddle.Checkout.open(options);
+    });
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <div class="pill">
+      <span>⚡ QuickBox Premium</span>
+      <span id="plan-text">Plano</span>
+    </div>
+    <h1>Checkout seguro QuickBox</h1>
+    <p id="status-text">
+      A preparar o checkout via Paddle…
+    </p>
+    <p style="margin-top: 10px; font-size: 11px;">
+      Esta página apenas abre o checkout. Depois do pagamento, a tua licença é gravada no backend e a extensão
+      desbloqueia automaticamente.
+    </p>
+  </div>
+</body>
+</html>
